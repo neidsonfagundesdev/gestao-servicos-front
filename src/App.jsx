@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
+import Servicos from './pages/Servicos';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -27,6 +28,16 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/servicos"
+        element={
+          <ProtectedRoute>
+            <Servicos />
+          </ProtectedRoute>
+        }
+      />  
+
     </Routes>
   );
 }

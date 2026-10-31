@@ -264,3 +264,132 @@ export async function excluirCliente(id) {
     throw new Error('Erro ao excluir cliente.');
   }
 }
+
+/*
+Lista todos os serviços cadastrados.
+
+Faz:
+GET /api/servicos
+*/
+export async function listarServicos() {
+  // Pega o token salvo no login
+  const token = localStorage.getItem('token');
+
+  // Faz a requisição para o Laravel
+  const response = await fetch(`${API_URL}/servicos`, {
+    method: 'GET',
+
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  // Usa a função central que já criamos
+  return tratarResposta(response);
+}
+
+/*
+Cria um novo serviço.
+
+Faz:
+POST /api/servicos
+*/
+export async function criarServico(servico) {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_URL}/servicos`, {
+    method: 'POST',
+
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+
+    body: JSON.stringify(servico),
+  });
+
+  return tratarResposta(response);
+}
+
+/*
+Atualiza um serviço existente.
+
+Exemplo:
+PATCH /api/servicos/3
+*/
+export async function atualizarServico(id, servico) {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_URL}/servicos/${id}`, {
+    method: 'PATCH',
+
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+
+    // Transforma o objeto JavaScript em JSON
+    body: JSON.stringify(servico),
+  });
+
+  return tratarResposta(response);
+}
+
+/*
+Exclui um serviço.
+
+Recebe somente o ID do serviço.
+
+Exemplo:
+
+excluirServico(3);
+
+Faz:
+DELETE /api/servicos/3
+
+No nosso backend, somente admin pode excluir.
+*/
+export async function excluirServico(id) {
+  // Pega o token salvo no login
+  const token = localStorage.getItem('token');
+
+  // Faz a requisição DELETE para o Laravel
+  const response = await fetch(`${API_URL}/servicos/${id}`, {
+    method: 'DELETE',
+
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  /*
+  DELETE com sucesso retorna 204 No Content.
+
+  Como não existe JSON na resposta,
+  não usamos tratarResposta() nesse caso.
+  */
+  if (response.status === 204) {
+    return;
+  }
+
+  // Token inválido ou revogado
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+
+    throw new Error('Não autenticado.');
+  }
+
+  // Usuário autenticado, mas sem permissão
+  if (response.status === 403) {
+    throw new Error('Sem permissão.');
+  }
+
+  // Qualquer outro erro
+  if (!response.ok) {
+    throw new Error('Erro ao excluir serviço.');
+  }
+}
