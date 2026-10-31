@@ -33,6 +33,8 @@ function Dashboard() {
 
       localStorage.removeItem('token');
 
+      localStorage.removeItem('usuario');
+
       navigate('/login');
     } catch {
       setMensagem('Não foi possível fazer logout.');

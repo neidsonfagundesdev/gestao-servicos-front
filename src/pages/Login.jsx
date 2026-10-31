@@ -34,7 +34,12 @@ function Login() {
       }
 
       localStorage.setItem('token', dados.token);
-      
+
+      localStorage.setItem(
+        'usuario',
+        JSON.stringify(dados.usuario)
+      );
+
       navigate('/dashboard');
 
     } catch {
