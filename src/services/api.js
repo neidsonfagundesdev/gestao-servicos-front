@@ -512,3 +512,24 @@ export async function excluirAgendamento(id) {
     throw new Error('Erro ao excluir agendamento.');
   }
 }
+
+/*
+Busca os dados resumidos do dashboard.
+
+Faz:
+GET /api/dashboard
+*/
+export async function buscarDashboard() {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_URL}/dashboard`, {
+    method: 'GET',
+
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  return tratarResposta(response);
+}
