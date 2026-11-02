@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
 import Servicos from './pages/Servicos';
+import Agendamentos from './pages/Agendamentos';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -37,6 +38,15 @@ function App() {
           </ProtectedRoute>
         }
       />  
+
+      <Route
+        path="/agendamentos"
+        element={
+          <ProtectedRoute>
+            <Agendamentos />
+          </ProtectedRoute>
+        }
+      />    
 
     </Routes>
   );

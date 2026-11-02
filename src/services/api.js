@@ -3,45 +3,73 @@
 const API_URL = 'http://127.0.0.1:8000/api';
 
 /*
-Função central para tratar respostas da API.
+Trata as respostas vindas da API.
 
-Ela é usada por várias funções abaixo.
-
-Exemplo:
-GET /clientes
-GET /agendamentos
-POST /login
-PATCH /clientes/{id}
-
-A ideia é:
-- se vier 401, o token não é mais válido;
-- se vier outro erro, lançamos uma exceção;
-- se der certo, transformamos a resposta em JSON.
+Agora ela consegue aproveitar as mensagens
+que o Laravel envia nos erros.
 */
 async function tratarResposta(response) {
   // 401 = usuário não autenticado
   if (response.status === 401) {
-    // Remove o token inválido do navegador
     localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
 
-    // Interrompe o código e envia esse erro para o catch
     throw new Error('Não autenticado.');
   }
 
   /*
-  response.ok é true para respostas de sucesso,
-  normalmente códigos entre 200 e 299.
-
-  Se não for sucesso, lançamos um erro.
+  Se a resposta não for de sucesso,
+  tentamos ler o JSON de erro enviado pelo Laravel.
   */
   if (!response.ok) {
+    let dadosErro = {};
+
+    try {
+      dadosErro = await response.json();
+    } catch {
+      // Se não existir JSON, deixamos vazio
+    }
+
+    /*
+    Nosso backend usa "erro" em vários casos.
+
+    Exemplo:
+    {
+      "erro": "Este funcionário já possui um agendamento neste período."
+    }
+    */
+    if (dadosErro.erro) {
+      throw new Error(dadosErro.erro);
+    }
+
+    /*
+    Em erros de validação 422,
+    o Laravel costuma retornar:
+
+    {
+      "message": "...",
+      "errors": {
+        "data": [...]
+      }
+    }
+    */
+    if (dadosErro.message) {
+      throw new Error(dadosErro.message);
+    }
+
     throw new Error('Erro na requisição.');
   }
 
   /*
-  Converte o JSON recebido da API
-  para um objeto JavaScript.
+  Alguns endpoints podem retornar 204 No Content.
+
+  Nesse caso não existe JSON para converter.
   */
+  if (response.status === 204) {
+    return;
+  }
+
+  // Se deu certo e tem conteúdo, retorna o JSON
   return response.json();
 }
 
@@ -391,5 +419,96 @@ export async function excluirServico(id) {
   // Qualquer outro erro
   if (!response.ok) {
     throw new Error('Erro ao excluir serviço.');
+  }
+}
+
+/*
+Cria um novo agendamento.
+
+Faz:
+POST /api/agendamentos
+*/
+export async function criarAgendamento(agendamento) {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_URL}/agendamentos`, {
+    method: 'POST',
+
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+
+    body: JSON.stringify(agendamento),
+  });
+
+  return tratarResposta(response);
+}
+
+/*
+Atualiza um agendamento existente.
+
+Faz:
+PATCH /api/agendamentos/{id}
+*/
+export async function atualizarAgendamento(id, agendamento) {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_URL}/agendamentos/${id}`, {
+    method: 'PATCH',
+
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+
+    body: JSON.stringify(agendamento),
+  });
+
+  return tratarResposta(response);
+}
+
+/*
+Exclui um agendamento.
+
+Faz:
+DELETE /api/agendamentos/{id}
+
+Somente admin pode excluir.
+*/
+export async function excluirAgendamento(id) {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_URL}/agendamentos/${id}`, {
+    method: 'DELETE',
+
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  // DELETE com sucesso retorna 204 sem conteúdo
+  if (response.status === 204) {
+    return;
+  }
+
+  // Token inválido
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+
+    throw new Error('Não autenticado.');
+  }
+
+  // Usuário autenticado, mas sem permissão
+  if (response.status === 403) {
+    throw new Error('Sem permissão.');
+  }
+
+  if (!response.ok) {
+    throw new Error('Erro ao excluir agendamento.');
   }
 }
