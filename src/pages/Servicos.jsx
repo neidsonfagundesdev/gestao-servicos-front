@@ -5,345 +5,392 @@ import {
   listarServicos,
   criarServico,
   atualizarServico,
-  excluirServico
+  excluirServico,
 } from '../services/api';
 
 function Servicos() {
-  // Guarda a lista de serviços recebida da API
+  /*
+  Guarda a lista de serviços recebida da API.
+  */
   const [servicos, setServicos] = useState([]);
 
-  // Guarda mensagens para mostrar na tela
-  // Ex: "Carregando...", "Serviço atualizado com sucesso.", erros etc.
-  const [mensagem, setMensagem] = useState('Carregando...');
+  /*
+  Guarda o texto da mensagem.
+  */
+  const [mensagem, setMensagem] = useState('');
 
-  // Guarda o que o usuário digita no campo nome
+  /*
+  Guarda o tipo da mensagem.
+
+  Pode ser:
+  "sucesso"
+  "erro"
+  */
+  const [tipoMensagem, setTipoMensagem] = useState('');
+
+  /*
+  Campos do formulário.
+  */
   const [nome, setNome] = useState('');
-
-  // Guarda o que o usuário digita na descrição
   const [descricao, setDescricao] = useState('');
-
-  // Guarda a duração em minutos
-  const [duracaoMinutos, setDuracaoMinutos] = useState('');
-
-  // Guarda o preço
+  const [duracao, setDuracao] = useState('');
   const [preco, setPreco] = useState('');
 
-  // Guarda se o serviço está ativo
-  // true = ativo
-  // false = inativo
+  /*
+  true  = serviço ativo
+  false = serviço inativo
+  */
   const [ativo, setAtivo] = useState(true);
 
   /*
-  Guarda o ID do serviço que está sendo editado.
+  Guarda qual serviço está sendo editado.
 
-  null = estamos cadastrando um novo serviço
-  3    = estamos editando o serviço de ID 3
+  null = novo serviço
+  objeto = edição
   */
   const [servicoEditando, setServicoEditando] = useState(null);
 
   /*
-  Recupera os dados do usuário que fez login.
+  Recupera o usuário logado.
 
-  Isso permite saber se ele é:
-  admin
-  ou
-  funcionario
+  Precisamos disso para saber
+  se ele é administrador.
   */
   const usuario = JSON.parse(
     localStorage.getItem('usuario')
   );
 
-  // Permite navegar para outras rotas
+  /*
+  Permite redirecionar para outra rota.
+  */
   const navigate = useNavigate();
 
   /*
-  Executa quando a página Serviços é aberta.
+  Busca novamente os serviços.
 
-  Busca os serviços no Laravel e coloca
-  os dados dentro do estado "servicos".
+  Usamos depois de:
+  - cadastrar
+  - editar
+  - excluir
   */
-  useEffect(() => {
-    async function carregarServicos() {
-      try {
-        // Faz GET /api/servicos
-        const dados = await listarServicos();
-
-        // Salva o array de serviços
-        setServicos(dados.servicos);
-
-        // Limpa a mensagem "Carregando..."
-        setMensagem('');
-      } catch (error) {
-        // Se o token estiver inválido ou revogado
-        if (error.message === 'Não autenticado.') {
-          navigate('/login');
-          return;
-        }
-
-        setMensagem('Não foi possível carregar os serviços.');
-      }
-    }
-
-    carregarServicos();
-  }, [navigate]);
-
-  /*
-  Executa quando o formulário é enviado.
-
-  Essa mesma função serve para:
-
-  POST  -> cadastrar novo serviço
-  PATCH -> atualizar serviço existente
-  */
-  async function handleSubmit(event) {
-    // Impede a página de recarregar
-    event.preventDefault();
-
+  async function carregarServicos() {
     try {
-      /*
-      Monta o objeto que será enviado ao Laravel.
-
-      Number() transforma o texto do input
-      em número.
-      */
-      const dadosServico = {
-        nome,
-        descricao,
-        duracao_minutos: Number(duracaoMinutos),
-        preco: Number(preco),
-        ativo,
-      };
-
-      /*
-      Se servicoEditando tiver um ID,
-      significa que estamos editando.
-
-      Então fazemos PATCH.
-      */
-      if (servicoEditando) {
-        await atualizarServico(
-          servicoEditando,
-          dadosServico
-        );
-
-        setMensagem('Serviço atualizado com sucesso.');
-      } else {
-        /*
-        Se servicoEditando for null,
-        significa que estamos cadastrando.
-
-        Então fazemos POST.
-        */
-        await criarServico(dadosServico);
-
-        setMensagem('Serviço cadastrado com sucesso.');
-      }
-
-      /*
-      Depois do cadastro ou edição,
-      limpamos os campos do formulário.
-      */
-      setNome('');
-      setDescricao('');
-      setDuracaoMinutos('');
-      setPreco('');
-      setAtivo(true);
-
-      // Sai do modo de edição
-      setServicoEditando(null);
-
-      /*
-      Busca novamente a lista para atualizar
-      a tela com os dados mais recentes.
-      */
       const dados = await listarServicos();
 
       setServicos(dados.servicos);
 
     } catch (error) {
-      // Token inválido ou revogado
       if (error.message === 'Não autenticado.') {
         navigate('/login');
         return;
       }
 
-      setMensagem('Não foi possível salvar o serviço.');
+      setMensagem(
+        'Não foi possível carregar os serviços.'
+      );
+
+      setTipoMensagem('erro');
     }
   }
 
   /*
-  Executa quando clicamos no botão Editar.
-
-  Recebe o serviço clicado e coloca os dados
-  dele dentro dos campos do formulário.
+  Executa quando a página é aberta.
   */
-  function editarServico(servico) {
-    // Guarda o ID do serviço que será editado
-    setServicoEditando(servico.id);
+  useEffect(() => {
+    async function buscarServicos() {
+      try {
+        const dados = await listarServicos();
 
-    // Preenche os campos do formulário
-    setNome(servico.nome);
+        setServicos(dados.servicos);
 
-    // Se descrição for null, usa string vazia
-    setDescricao(servico.descricao || '');
+      } catch (error) {
+        if (error.message === 'Não autenticado.') {
+          navigate('/login');
+          return;
+        }
 
-    // Preenche duração
-    setDuracaoMinutos(servico.duracao_minutos);
+        setMensagem(
+          'Não foi possível carregar os serviços.'
+        );
 
-    // Preenche preço
-    setPreco(servico.preco);
+        setTipoMensagem('erro');
+      }
+    }
 
-    /*
-    Converte o valor para verdadeiro ou falso.
+    buscarServicos();
 
-    Isso ajuda porque o Laravel/MySQL pode
-    devolver 1 ou 0.
-    */
-    setAtivo(Boolean(servico.ativo));
-  }
+  }, [navigate]);
 
   /*
-  Cancela a edição atual.
-
-  Limpa o formulário e volta
-  para o modo de cadastro.
+  Limpa o formulário.
   */
-  function cancelarEdicao() {
-    setServicoEditando(null);
-
+  function limparFormulario() {
     setNome('');
     setDescricao('');
-    setDuracaoMinutos('');
+    setDuracao('');
     setPreco('');
     setAtivo(true);
 
+    setServicoEditando(null);
+  }
+
+  /*
+  Executado quando o formulário é enviado.
+
+  Pode criar ou atualizar.
+  */
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    /*
+    Limpa mensagens anteriores.
+    */
     setMensagem('');
+    setTipoMensagem('');
+
+    /*
+    Objeto enviado para o backend.
+    */
+    const servico = {
+      nome,
+      descricao,
+      duracao_minutos: Number(duracao),
+      preco: Number(preco),
+      ativo,
+    };
+
+    try {
+      /*
+      Se existe serviço sendo editado,
+      fazemos PATCH.
+      */
+      if (servicoEditando) {
+        await atualizarServico(
+          servicoEditando.id,
+          servico
+        );
+
+        setMensagem(
+          'Serviço atualizado com sucesso.'
+        );
+
+        setTipoMensagem('sucesso');
+
+      } else {
+        /*
+        Caso contrário,
+        criamos um novo serviço.
+        */
+        await criarServico(servico);
+
+        setMensagem(
+          'Serviço cadastrado com sucesso.'
+        );
+
+        setTipoMensagem('sucesso');
+      }
+
+      /*
+      Limpa o formulário.
+      */
+      limparFormulario();
+
+      /*
+      Atualiza a tabela.
+      */
+      await carregarServicos();
+
+    } catch (error) {
+      setMensagem(error.message);
+
+      setTipoMensagem('erro');
+    }
+  }
+
+  /*
+  Coloca o serviço no formulário
+  para edição.
+  */
+  function editarServico(servico) {
+    setServicoEditando(servico);
+
+    setNome(servico.nome);
+
+    setDescricao(
+      servico.descricao ?? ''
+    );
+
+    setDuracao(
+      String(servico.duracao_minutos)
+    );
+
+    setPreco(
+      String(servico.preco)
+    );
+
+    setAtivo(
+      Boolean(servico.ativo)
+    );
+
+    /*
+    Limpa mensagens anteriores.
+    */
+    setMensagem('');
+    setTipoMensagem('');
+  }
+
+  /*
+  Cancela a edição.
+  */
+  function cancelarEdicao() {
+    limparFormulario();
+
+    setMensagem('');
+    setTipoMensagem('');
   }
 
   /*
   Exclui um serviço.
-
-  Recebe o ID do serviço clicado,
-  pede confirmação e chama a API.
-*/
-  async function deletarServico(id) {
-  /*
-  Abre uma confirmação no navegador.
-
-  OK       -> true
-  Cancelar -> false
   */
-  const confirmou = window.confirm(
-    'Tem certeza que deseja excluir este serviço?'
-  );
-
-  // Se cancelar, para aqui
-  if (!confirmou) {
-    return;
-  }
-
-  try {
-    // Faz DELETE /api/servicos/{id}
-    await excluirServico(id);
-
-    /*
-    Depois da exclusão, busca novamente
-    os serviços para atualizar a tela.
-    */
-    const dados = await listarServicos();
-
-    setServicos(dados.servicos);
-
-    setMensagem('Serviço excluído com sucesso.');
-  } catch (error) {
-    // Token inválido
-    if (error.message === 'Não autenticado.') {
-    navigate('/login');
-    return;
-    }
-
-    // Usuário sem permissão
-    if (error.message === 'Sem permissão.') {
-    setMensagem(
-        'Você não possui permissão para excluir serviços.'
+  async function removerServico(id) {
+    const confirmar = window.confirm(
+      'Deseja realmente excluir este serviço?'
     );
-    return;
+
+    if (!confirmar) {
+      return;
     }
 
-    setMensagem('Não foi possível excluir o serviço.');
+    setMensagem('');
+    setTipoMensagem('');
+
+    try {
+      await excluirServico(id);
+
+      setMensagem(
+        'Serviço excluído com sucesso.'
+      );
+
+      setTipoMensagem('sucesso');
+
+      await carregarServicos();
+
+    } catch (error) {
+      setMensagem(error.message);
+
+      setTipoMensagem('erro');
+    }
   }
-}
 
   return (
-    <div>
-      <h1>Serviços</h1>
+    <div className="pagina">
+
+      {/* ============================= */}
+      {/* CABEÇALHO */}
+      {/* ============================= */}
+
+      <div className="pagina-cabecalho">
+        <div>
+          <h1>Serviços</h1>
+
+          <p>
+            Cadastre e gerencie os serviços oferecidos.
+          </p>
+        </div>
+      </div>
+
+
+      {/* ============================= */}
+      {/* FORMULÁRIO */}
+      {/* ============================= */}
 
       {/*
-      Somente admin vê o formulário.
-
-      Funcionário pode visualizar,
-      mas não pode cadastrar nem editar.
+      Somente administrador vê
+      o formulário.
       */}
       {usuario?.perfil === 'admin' && (
-        <>
+
+        <section className="formulario-card">
+
           <h2>
             {servicoEditando
               ? 'Editar serviço'
-              : 'Cadastrar serviço'}
+              : 'Novo serviço'}
           </h2>
 
-          <form onSubmit={handleSubmit}>
-            <div>
-              <label>Nome</label>
+          <form
+            className="formulario"
+            onSubmit={handleSubmit}
+          >
+
+            {/* Nome */}
+            <div className="campo">
+              <label htmlFor="nome">
+                Nome
+              </label>
 
               <input
+                id="nome"
                 type="text"
                 value={nome}
                 onChange={(event) =>
                   setNome(event.target.value)
                 }
+                required
               />
             </div>
 
-            <div>
-              <label>Descrição</label>
 
-              <textarea
-                value={descricao}
-                onChange={(event) =>
-                  setDescricao(event.target.value)
-                }
-              />
-            </div>
-
-            <div>
-              <label>Duração em minutos</label>
+            {/* Duração */}
+            <div className="campo">
+              <label htmlFor="duracao">
+                Duração em minutos
+              </label>
 
               <input
+                id="duracao"
                 type="number"
-                value={duracaoMinutos}
+                min="1"
+                value={duracao}
                 onChange={(event) =>
-                  setDuracaoMinutos(event.target.value)
+                  setDuracao(event.target.value)
                 }
+                required
               />
             </div>
 
-            <div>
-              <label>Preço</label>
+
+            {/* Preço */}
+            <div className="campo">
+              <label htmlFor="preco">
+                Preço
+              </label>
 
               <input
+                id="preco"
                 type="number"
+                min="0"
                 step="0.01"
                 value={preco}
                 onChange={(event) =>
                   setPreco(event.target.value)
                 }
+                required
               />
             </div>
 
-            <div>
+
+            {/* Situação */}
+            <div className="campo">
+
               <label>
+                Situação
+              </label>
+
+              <label className="checkbox-campo">
+
                 <input
+                  id="ativo"
                   type="checkbox"
                   checked={ativo}
                   onChange={(event) =>
@@ -351,89 +398,180 @@ function Servicos() {
                   }
                 />
 
-                Serviço ativo
+                <span>
+                  Serviço ativo
+                </span>
+
               </label>
+
             </div>
 
-            {/*
-            O texto do botão muda dependendo
-            se estamos cadastrando ou editando.
-            */}
-            <button type="submit">
-              {servicoEditando
-                ? 'Salvar alteração'
-                : 'Cadastrar serviço'}
-            </button>
 
-            {/*
-            Esse botão só aparece
-            quando estamos editando.
-            */}
-            {servicoEditando && (
+            {/* Descrição */}
+            <div className="campo campo-largo">
+
+              <label htmlFor="descricao">
+                Descrição
+              </label>
+
+              <textarea
+                id="descricao"
+                value={descricao}
+                onChange={(event) =>
+                  setDescricao(event.target.value)
+                }
+                rows="4"
+              />
+
+            </div>
+
+
+            {/* Botões */}
+            <div className="formulario-acoes">
+
               <button
-                type="button"
-                onClick={cancelarEdicao}
+                className="botao-principal"
+                type="submit"
               >
-                Cancelar edição
+                {servicoEditando
+                  ? 'Salvar alterações'
+                  : 'Cadastrar serviço'}
               </button>
-            )}
+
+              {servicoEditando && (
+
+                <button
+                  className="botao-secundario"
+                  type="button"
+                  onClick={cancelarEdicao}
+                >
+                  Cancelar
+                </button>
+
+              )}
+
+            </div>
+
           </form>
-        </>
+
+        </section>
       )}
 
-      {/* Mostra mensagens de sucesso ou erro */}
-      {mensagem && <p>{mensagem}</p>}
 
-      <h2>Serviços cadastrados</h2>
+      {/* ============================= */}
+      {/* MENSAGEM */}
+      {/* ============================= */}
 
-      {/*
-      Percorre os serviços recebidos da API.
+      {mensagem && (
 
-      É parecido com foreach no PHP.
-      */}
-      {servicos.map((servico) => (
-        <div key={servico.id}>
-          <p>Nome: {servico.nome}</p>
-
-          <p>
-            Descrição: {servico.descricao || 'Não informada'}
-          </p>
-
-          <p>
-            Duração: {servico.duracao_minutos} minutos
-          </p>
-
-          <p>
-            Preço: R$ {servico.preco}
-          </p>
-
-          <p>
-            Status: {servico.ativo ? 'Ativo' : 'Inativo'}
-          </p>
-
-          {/*
-          Somente admin vê o botão Editar.
-          */}
-          {usuario?.perfil === 'admin' && (
-            <button
-              onClick={() => editarServico(servico)}
-            >
-              Editar
-            </button>
-          )}
-          
-          {/* Somente admin pode excluir */}  
-          {usuario?.perfil === 'admin' && (
-            <button
-              onClick={() => deletarServico(servico.id)}
+        <p
+          className={`mensagem ${tipoMensagem}`}
         >
-              Excluir
-            </button>
-          )}
+          {mensagem}
+        </p>
 
-          <hr />
-        </div>
-      ))}
+      )}
+
+
+      {/* ============================= */}
+      {/* LISTA DE SERVIÇOS */}
+      {/* ============================= */}
+
+      <section className="lista-card">
+
+        <h2>
+          Serviços cadastrados
+        </h2>
+
+        {servicos.length === 0 ? (
+
+          <p>
+            Nenhum serviço cadastrado.
+          </p>
+
+        ) : (
+
+          <div className="tabela-container">
+
+            <table className="tabela">
+
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Duração</th>
+                  <th>Preço</th>
+                  <th>Situação</th>
+
+                  {usuario?.perfil === 'admin' && (
+                    <th>Ações</th>
+                  )}
+                </tr>
+              </thead>
+
+              <tbody>
+
+                {servicos.map((servico) => (
+
+                  <tr key={servico.id}>
+
+                    <td>
+                      {servico.nome}
+                    </td>
+
+                    <td>
+                      {servico.duracao_minutos} min
+                    </td>
+
+                    <td>
+                      R$ {Number(servico.preco).toFixed(2)}
+                    </td>
+
+                    <td>
+                      {servico.ativo
+                        ? 'Ativo'
+                        : 'Inativo'}
+                    </td>
+
+                    {usuario?.perfil === 'admin' && (
+
+                      <td className="tabela-acoes">
+
+                        <button
+                          className="botao-editar"
+                          onClick={() =>
+                            editarServico(servico)
+                          }
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          className="botao-excluir"
+                          onClick={() =>
+                            removerServico(servico.id)
+                          }
+                        >
+                          Excluir
+                        </button>
+
+                      </td>
+
+                    )}
+
+                  </tr>
+
+                ))}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        )}
+
+      </section>
+
     </div>
   );
 }

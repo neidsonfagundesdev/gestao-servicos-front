@@ -1,390 +1,739 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listarClientes, criarCliente, atualizarCliente, excluirCliente } from '../services/api';
+
+import {
+  listarClientes,
+  criarCliente,
+  atualizarCliente,
+  excluirCliente,
+} from '../services/api';
 
 function Clientes() {
-  // Guarda a lista de clientes recebida da API
+  /*
+  Guarda a lista de clientes recebida da API.
+  */
   const [clientes, setClientes] = useState([]);
 
-  // Guarda mensagens para mostrar na tela
-  // Ex: "Carregando...", "Cliente cadastrado com sucesso.", erros etc.
-  const [mensagem, setMensagem] = useState('Carregando...');
+  /*
+  Guarda o texto da mensagem.
 
-  // Guarda o que o usuário digita no campo nome
+  Ex:
+  "Cliente cadastrado com sucesso."
+  "Não foi possível carregar os clientes."
+  */
+  const [mensagem, setMensagem] = useState('');
+
+  /*
+  Guarda o tipo da mensagem.
+
+  Pode ser:
+  "sucesso"
+  ou
+  "erro"
+
+  Esse valor será usado no CSS
+  para mudar a aparência da mensagem.
+  */
+  const [tipoMensagem, setTipoMensagem] = useState('');
+
+  /*
+  Campos do formulário.
+  */
   const [nome, setNome] = useState('');
-
-  // Guarda o que o usuário digita no campo telefone
   const [telefone, setTelefone] = useState('');
-
-  // Guarda o que o usuário digita no campo email
   const [email, setEmail] = useState('');
-
-  // Guarda o que o usuário digita no campo observações
   const [observacoes, setObservacoes] = useState('');
 
   /*
-  Guarda o ID do cliente que está sendo editado.
+  Guarda o cliente que está sendo editado.
 
-  null = nenhum cliente está sendo editado
-  3 = estamos editando o cliente de ID 3
+  null = estamos cadastrando um cliente novo.
+
+  objeto = estamos editando um cliente existente.
   */
   const [clienteEditando, setClienteEditando] = useState(null);
 
-  // Recupera os dados do usuário que fez login
+  /*
+  Recupera o usuário logado que foi salvo
+  no localStorage durante o login.
+
+  Precisamos disso para saber se ele é admin
+  e pode visualizar o botão Excluir.
+  */
   const usuario = JSON.parse(
     localStorage.getItem('usuario')
   );
 
-  // Permite navegar para outra rota do React
-  // Ex: mandar o usuário de volta para /login
+  /*
+  Permite redirecionar para outra página.
+
+  Ex:
+  se o token deixar de ser válido,
+  podemos voltar para /login.
+  */
   const navigate = useNavigate();
 
   /*
-  useEffect executa quando a página Clientes é aberta.
+  Busca os clientes no backend.
 
-  Ele chama a API para buscar os clientes cadastrados
-  e coloca os dados dentro do estado "clientes".
+  Essa função será usada depois de:
+  - cadastrar
+  - editar
+  - excluir
+
+  Assim atualizamos a tabela.
   */
-  useEffect(() => {
-    async function carregarClientes() {
-      try {
-        // Busca os clientes na API Laravel
-        const dados = await listarClientes();
-
-        // Salva o array de clientes recebido da API
-        setClientes(dados.clientes);
-
-        // Limpa a mensagem "Carregando..."
-        setMensagem('');
-      } catch (error) {
-        // Se o token não for mais válido, volta para o login
-        if (error.message === 'Não autenticado.') {
-          navigate('/login');
-          return;
-        }
-
-        // Caso aconteça outro erro
-        setMensagem('Não foi possível carregar os clientes.');
-      }
-    }
-
-    // Executa a função criada acima
-    carregarClientes();
-  }, [navigate]);
-
-  /*
-  Executa quando o usuário envia o formulário.
-
-  Essa mesma função serve tanto para:
-
-  POST  -> cadastrar novo cliente
-  PATCH -> atualizar cliente existente
-  */
-  async function handleSubmit(event) {
-    // Impede o navegador de recarregar a página
-    event.preventDefault();
-
+  async function carregarClientes() {
     try {
-      /*
-      Monta um objeto com os dados atuais do formulário.
-
-      Ex:
-      {
-        nome: "João",
-        telefone: "71999999999",
-        email: "joao@email.com",
-        observacoes: "Cliente..."
-      }
-      */
-      const dadosCliente = {
-        nome,
-        telefone,
-        email,
-        observacoes,
-      };
-
-      /*
-      Se clienteEditando tiver um ID,
-      significa que clicamos anteriormente no botão Editar.
-
-      Então fazemos PATCH.
-      */
-      if (clienteEditando) {
-        await atualizarCliente(clienteEditando, dadosCliente);
-
-        setMensagem('Cliente atualizado com sucesso.');
-      } else {
-        /*
-        Se clienteEditando for null,
-        significa que estamos cadastrando um cliente novo.
-
-        Então fazemos POST.
-        */
-        await criarCliente(dadosCliente);
-
-        setMensagem('Cliente cadastrado com sucesso.');
-      }
-
-      /*
-      Depois de cadastrar ou atualizar,
-      limpamos os campos do formulário.
-      */
-      setNome('');
-      setTelefone('');
-      setEmail('');
-      setObservacoes('');
-
-      // Sai do modo de edição
-      setClienteEditando(null);
-
-      /*
-      Busca novamente os clientes na API
-      para atualizar a lista na tela.
-      */
       const dados = await listarClientes();
 
+      /*
+      O backend retorna:
+
+      {
+        clientes: [...]
+      }
+
+      Por isso usamos dados.clientes.
+      */
       setClientes(dados.clientes);
+
     } catch (error) {
-      // Token inválido ou revogado
+
+      /*
+      Se o token não for mais válido,
+      voltamos para o login.
+      */
       if (error.message === 'Não autenticado.') {
         navigate('/login');
         return;
       }
 
-      // Outro erro durante cadastro ou atualização
-      setMensagem('Não foi possível salvar o cliente.');
+      /*
+      Qualquer outro erro ao buscar clientes.
+      */
+      setMensagem(
+        'Não foi possível carregar os clientes.'
+      );
+
+      setTipoMensagem('erro');
     }
   }
 
   /*
-  Executa quando clicamos no botão Editar.
+  Executa quando a página Clientes é aberta.
 
-  Recebe o cliente que foi clicado e coloca
-  os dados dele dentro dos campos do formulário.
+  Faz a primeira busca dos clientes.
   */
-  function editarCliente(cliente) {
-    // Guarda o ID do cliente que está sendo editado
-    setClienteEditando(cliente.id);
-
-    // Preenche os campos do formulário
-    setNome(cliente.nome);
-    setTelefone(cliente.telefone);
-
+  useEffect(() => {
     /*
-    Se email for null, usamos uma string vazia.
-    Isso evita problemas no input do React.
-    */
-    setEmail(cliente.email || '');
+    Criamos a função assíncrona
+    dentro do useEffect.
 
-    // Faz o mesmo para observações
-    setObservacoes(cliente.observacoes || '');
-  }
+    Isso evita o aviso do ESLint
+    que vimos anteriormente.
+    */
+    async function buscarClientes() {
+      try {
+        const dados = await listarClientes();
+
+        setClientes(dados.clientes);
+
+      } catch (error) {
+
+        /*
+        Token inválido ou expirado.
+        */
+        if (error.message === 'Não autenticado.') {
+          navigate('/login');
+          return;
+        }
+
+        /*
+        Outro erro qualquer.
+        */
+        setMensagem(
+          'Não foi possível carregar os clientes.'
+        );
+
+        setTipoMensagem('erro');
+      }
+    }
+
+    buscarClientes();
+
+  }, [navigate]);
 
   /*
-  Cancela a edição atual.
+  Limpa todos os campos do formulário.
 
-  Limpa os campos e volta o formulário
-  para o modo de cadastro.
+  Também sai do modo de edição.
   */
-  function cancelarEdicao() {
-    // Nenhum cliente está sendo editado
-    setClienteEditando(null);
-
-    // Limpa os campos
+  function limparFormulario() {
     setNome('');
     setTelefone('');
     setEmail('');
     setObservacoes('');
 
-    // Limpa mensagens da tela
+    /*
+    null significa que não estamos
+    editando nenhum cliente.
+    */
+    setClienteEditando(null);
+  }
+
+  /*
+  Executado quando o formulário é enviado.
+
+  Pode criar ou atualizar um cliente.
+  */
+  async function handleSubmit(event) {
+    /*
+    Impede o navegador de recarregar
+    a página inteira.
+    */
+    event.preventDefault();
+
+    /*
+    Antes de uma nova operação,
+    limpamos mensagens anteriores.
+    */
     setMensagem('');
+    setTipoMensagem('');
+
+    /*
+    Montamos o objeto que será enviado
+    para o backend.
+    */
+    const cliente = {
+      nome,
+      telefone,
+      email,
+      observacoes,
+    };
+
+    try {
+      /*
+      Se existe clienteEditando,
+      fazemos PATCH.
+      */
+      if (clienteEditando) {
+
+        await atualizarCliente(
+          clienteEditando.id,
+          cliente
+        );
+
+        /*
+        Mensagem de sucesso da edição.
+        */
+        setMensagem(
+          'Cliente atualizado com sucesso.'
+        );
+
+        setTipoMensagem('sucesso');
+
+      } else {
+
+        /*
+        Se não estamos editando,
+        fazemos POST e criamos um novo cliente.
+        */
+        await criarCliente(cliente);
+
+        /*
+        Mensagem de sucesso do cadastro.
+        */
+        setMensagem(
+          'Cliente cadastrado com sucesso.'
+        );
+
+        setTipoMensagem('sucesso');
+      }
+
+      /*
+      Depois de salvar,
+      limpamos o formulário.
+      */
+      limparFormulario();
+
+      /*
+      Busca novamente os clientes
+      para atualizar a tabela.
+      */
+      await carregarClientes();
+
+    } catch (error) {
+
+      /*
+      Mostra a mensagem de erro
+      retornada pelo tratamento da API.
+      */
+      setMensagem(error.message);
+
+      setTipoMensagem('erro');
+    }
+  }
+
+  /*
+  Coloca os dados de um cliente
+  dentro do formulário para edição.
+  */
+  function editarCliente(cliente) {
+    /*
+    Guarda qual cliente está sendo editado.
+    */
+    setClienteEditando(cliente);
+
+    /*
+    Preenche os campos do formulário
+    com os dados daquele cliente.
+    */
+    setNome(cliente.nome);
+
+    setTelefone(cliente.telefone);
+
+    /*
+    Se email for null,
+    usamos uma string vazia.
+    */
+    setEmail(
+      cliente.email ?? ''
+    );
+
+    /*
+    Se observações forem null,
+    usamos uma string vazia.
+    */
+    setObservacoes(
+      cliente.observacoes ?? ''
+    );
+
+    /*
+    Limpa mensagens anteriores.
+    */
+    setMensagem('');
+    setTipoMensagem('');
+  }
+
+  /*
+  Cancela uma edição.
+
+  Limpa o formulário
+  e volta para o modo de cadastro.
+  */
+  function cancelarEdicao() {
+    limparFormulario();
+
+    /*
+    Também limpamos mensagens anteriores.
+    */
+    setMensagem('');
+    setTipoMensagem('');
   }
 
   /*
   Exclui um cliente.
-
-  Recebe o ID do cliente clicado,
-  pede confirmação e chama a API.
   */
-  async function deletarCliente(id) {
-  /*
-  window.confirm abre uma caixa perguntando
-  se o usuário realmente quer excluir.
+  async function removerCliente(id) {
+    /*
+    Abre a confirmação do navegador.
 
-  OK      -> true
-  Cancelar -> false
-  */
-  const confirmou = window.confirm(
-    'Tem certeza que deseja excluir este cliente?'
-  );
-
-  // Se clicar em Cancelar, interrompe aqui
-  if (!confirmou) {
-    return;
-  }
-
-  try {
-    // Faz DELETE /api/clientes/{id}
-    await excluirCliente(id);
+    Isso evita exclusões acidentais.
+    */
+    const confirmar = window.confirm(
+      'Deseja realmente excluir este cliente?'
+    );
 
     /*
-    Depois que o Laravel excluir,
-    buscamos novamente os clientes
-    para atualizar a lista da tela.
+    Se clicar em Cancelar,
+    interrompemos a função.
     */
-    const dados = await listarClientes();
-
-    setClientes(dados.clientes);
-
-    setMensagem('Cliente excluído com sucesso.');
-
-  } catch (error) {
-    // Se o token estiver inválido
-    if (error.message === 'Não autenticado.') {
-      navigate('/login');
+    if (!confirmar) {
       return;
     }
 
     /*
-    Se estiver autenticado mas não for admin,
-    o Laravel retorna 403.
+    Limpa mensagens anteriores antes
+    de tentar a exclusão.
     */
-    if (error.message === 'Sem permissão.') {
+    setMensagem('');
+    setTipoMensagem('');
+
+    try {
+      /*
+      Faz DELETE no backend.
+      */
+      await excluirCliente(id);
+
+      /*
+      Mensagem de sucesso.
+      */
       setMensagem(
-        'Você não possui permissão para excluir clientes.'
+        'Cliente excluído com sucesso.'
       );
-      return;
-    }
 
-    // Qualquer outro erro
-    setMensagem('Não foi possível excluir o cliente.');
+      setTipoMensagem('sucesso');
+
+      /*
+      Busca novamente os clientes
+      para atualizar a tabela.
+      */
+      await carregarClientes();
+
+    } catch (error) {
+
+      /*
+      Mostra o erro retornado pela API.
+      */
+      setMensagem(error.message);
+
+      setTipoMensagem('erro');
+    }
   }
-}
 
   return (
-    <div>
-      <h1>Clientes</h1>
+    <div className="pagina">
 
-      {/*
-      Se clienteEditando tiver um ID,
-      mostramos "Editar cliente".
+      {/* ============================= */}
+      {/* CABEÇALHO */}
+      {/* ============================= */}
 
-      Caso contrário mostramos "Cadastrar cliente".
-      */}
-      <h2>
-        {clienteEditando ? 'Editar cliente' : 'Cadastrar cliente'}
-      </h2>
-
-      {/* Formulário de cadastro/edição */}
-      <form onSubmit={handleSubmit}>
+      <div className="pagina-cabecalho">
         <div>
-          <label>Nome</label>
-
-          <input
-            type="text"
-
-            // O valor do input vem do estado nome
-            value={nome}
-
-            /*
-            Toda vez que o usuário digita,
-            atualizamos o estado nome.
-            */
-            onChange={(event) => setNome(event.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Telefone</label>
-
-          <input
-            type="text"
-            value={telefone}
-            onChange={(event) => setTelefone(event.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>E-mail</label>
-
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Observações</label>
-
-          <textarea
-            value={observacoes}
-            onChange={(event) => setObservacoes(event.target.value)}
-          />
-        </div>
-
-        {/*
-        O texto do botão muda automaticamente.
-
-        Se estiver editando:
-        "Salvar alteração"
-
-        Se não estiver:
-        "Cadastrar cliente"
-        */}
-        <button type="submit">
-          {clienteEditando ? 'Salvar alteração' : 'Cadastrar cliente'}
-        </button>
-
-        {/*
-        Esse botão só aparece quando existe
-        um cliente sendo editado.
-        */}
-        {clienteEditando && (
-          <button type="button" onClick={cancelarEdicao}>
-            Cancelar edição
-          </button>
-        )}
-      </form>
-
-      {/* Mostra mensagens de sucesso ou erro */}
-      {mensagem && <p>{mensagem}</p>}
-
-      <h2>Clientes cadastrados</h2>
-
-      {/*
-      Percorre o array de clientes.
-
-      É parecido com um foreach no PHP.
-      */}
-      {clientes.map((cliente) => (
-        <div key={cliente.id}>
-          <p>Nome: {cliente.nome}</p>
-
-          <p>Telefone: {cliente.telefone}</p>
+          <h1>
+            Clientes
+          </h1>
 
           <p>
-            E-mail: {cliente.email || 'Não informado'}
+            Cadastre e gerencie os clientes do sistema.
+          </p>
+        </div>
+      </div>
+
+
+      {/* ============================= */}
+      {/* FORMULÁRIO */}
+      {/* ============================= */}
+
+      <section className="formulario-card">
+
+        <h2>
+          {/*
+          O título muda dependendo
+          se estamos criando ou editando.
+          */}
+          {clienteEditando
+            ? 'Editar cliente'
+            : 'Novo cliente'}
+        </h2>
+
+        <form
+          className="formulario"
+          onSubmit={handleSubmit}
+        >
+
+          {/* ============================= */}
+          {/* NOME */}
+          {/* ============================= */}
+
+          <div className="campo">
+
+            <label htmlFor="nome">
+              Nome
+            </label>
+
+            <input
+              id="nome"
+              type="text"
+              value={nome}
+              onChange={(event) =>
+                setNome(event.target.value)
+              }
+              required
+            />
+
+          </div>
+
+
+          {/* ============================= */}
+          {/* TELEFONE */}
+          {/* ============================= */}
+
+          <div className="campo">
+
+            <label htmlFor="telefone">
+              Telefone
+            </label>
+
+            <input
+              id="telefone"
+              type="text"
+              value={telefone}
+              onChange={(event) =>
+                setTelefone(event.target.value)
+              }
+              required
+            />
+
+          </div>
+
+
+          {/* ============================= */}
+          {/* E-MAIL */}
+          {/* ============================= */}
+
+          <div className="campo">
+
+            <label htmlFor="email">
+              E-mail
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(event) =>
+                setEmail(event.target.value)
+              }
+            />
+
+          </div>
+
+
+          {/* ============================= */}
+          {/* OBSERVAÇÕES */}
+          {/* ============================= */}
+
+          <div className="campo campo-largo">
+
+            <label htmlFor="observacoes">
+              Observações
+            </label>
+
+            <textarea
+              id="observacoes"
+              value={observacoes}
+              onChange={(event) =>
+                setObservacoes(event.target.value)
+              }
+              rows="4"
+            />
+
+          </div>
+
+
+          {/* ============================= */}
+          {/* BOTÕES DO FORMULÁRIO */}
+          {/* ============================= */}
+
+          <div className="formulario-acoes">
+
+            <button
+              className="botao-principal"
+              type="submit"
+            >
+              {/*
+              O texto do botão muda
+              conforme o modo atual.
+              */}
+              {clienteEditando
+                ? 'Salvar alterações'
+                : 'Cadastrar cliente'}
+            </button>
+
+
+            {/*
+            O botão Cancelar só aparece
+            durante uma edição.
+            */}
+            {clienteEditando && (
+
+              <button
+                className="botao-secundario"
+                type="button"
+                onClick={cancelarEdicao}
+              >
+                Cancelar
+              </button>
+
+            )}
+
+          </div>
+
+        </form>
+
+      </section>
+
+
+      {/* ============================= */}
+      {/* MENSAGEM */}
+      {/* ============================= */}
+
+      {/*
+      A mensagem recebe duas classes.
+
+      Exemplo de sucesso:
+
+      mensagem sucesso
+
+      Exemplo de erro:
+
+      mensagem erro
+
+      O CSS usa essas classes para decidir
+      se a caixa será verde ou vermelha.
+      */}
+      {mensagem && (
+
+        <p
+          className={`mensagem ${tipoMensagem}`}
+        >
+          {mensagem}
+        </p>
+
+      )}
+
+
+      {/* ============================= */}
+      {/* LISTA DE CLIENTES */}
+      {/* ============================= */}
+
+      <section className="lista-card">
+
+        <h2>
+          Clientes cadastrados
+        </h2>
+
+        {/*
+        Se não houver clientes,
+        mostramos uma mensagem.
+
+        Caso contrário,
+        mostramos a tabela.
+        */}
+        {clientes.length === 0 ? (
+
+          <p>
+            Nenhum cliente cadastrado.
           </p>
 
-          {/*
-          Ao clicar, enviamos aquele cliente
-          para a função editarCliente().
-          */}
-          <button onClick={() => editarCliente(cliente)}>
-            Editar
-          </button>
+        ) : (
 
-          {/* Somente administrador pode ver o botão Excluir */}  
-          {usuario?.perfil === 'admin' && (
-            <button onClick={() => deletarCliente(cliente.id)}>
-              Excluir
-            </button>
-          )}
+          /*
+          Permite rolagem horizontal
+          caso a tabela não caiba na tela.
+          */
+          <div className="tabela-container">
 
-          <hr />
-        </div>
-      ))}
+            <table className="tabela">
+
+              {/* Cabeçalho */}
+              <thead>
+
+                <tr>
+                  <th>Nome</th>
+
+                  <th>Telefone</th>
+
+                  <th>E-mail</th>
+
+                  <th>Ações</th>
+                </tr>
+
+              </thead>
+
+
+              {/* Dados */}
+              <tbody>
+
+                {/*
+                map percorre os clientes.
+
+                É parecido com foreach no PHP.
+                */}
+                {clientes.map((cliente) => (
+
+                  <tr key={cliente.id}>
+
+                    {/* Nome */}
+                    <td>
+                      {cliente.nome}
+                    </td>
+
+
+                    {/* Telefone */}
+                    <td>
+                      {cliente.telefone}
+                    </td>
+
+
+                    {/* E-mail */}
+                    <td>
+                      {/*
+                      Se não houver e-mail,
+                      mostramos "-".
+                      */}
+                      {cliente.email || '-'}
+                    </td>
+
+
+                    {/* Ações */}
+                    <td className="tabela-acoes">
+
+                      {/*
+                      Todos os usuários autenticados
+                      podem editar clientes.
+                      */}
+                      <button
+                        className="botao-editar"
+                        onClick={() =>
+                          editarCliente(cliente)
+                        }
+                      >
+                        Editar
+                      </button>
+
+
+                      {/*
+                      Somente o administrador
+                      vê o botão Excluir.
+
+                      IMPORTANTE:
+                      isso é apenas controle visual.
+
+                      O backend continua fazendo
+                      a verificação real de segurança.
+                      */}
+                      {usuario?.perfil === 'admin' && (
+
+                        <button
+                          className="botao-excluir"
+                          onClick={() =>
+                            removerCliente(cliente.id)
+                          }
+                        >
+                          Excluir
+                        </button>
+
+                      )}
+
+                    </td>
+
+                  </tr>
+
+                ))}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        )}
+
+      </section>
+
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { logout } from '../services/api';
 
 function Menu() {
@@ -16,44 +16,80 @@ function Menu() {
     try {
       await logout();
     } catch {
-      // Mesmo se o backend falhar,
-      // limpamos os dados locais para encerrar a sessão no frontend.
+      /*
+      Mesmo se o backend falhar,
+      limpamos os dados locais para encerrar
+      a sessão no frontend.
+      */
     }
 
+    // Remove o token salvo no navegador
     localStorage.removeItem('token');
+
+    // Remove os dados do usuário salvo
     localStorage.removeItem('usuario');
 
+    // Volta para a página de login
     navigate('/login');
   }
 
+  /*
+  Tudo que queremos mostrar na tela
+  precisa ficar dentro do return.
+  */
   return (
-    <nav>
-      {/* Link muda de rota sem recarregar a página */}
-      <Link to="/dashboard">
+    <nav className="menu">
+      {/*
+      NavLink funciona parecido com Link,
+      mas sabe quando aquela rota está ativa.
+
+      Isso permite destacar visualmente
+      a página que está aberta.
+      */}
+      <NavLink
+        to="/dashboard"
+        className={({ isActive }) =>
+          isActive ? 'menu-link ativo' : 'menu-link'
+        }
+      >
         Dashboard
-      </Link>
+      </NavLink>
 
-      {' | '}
-
-      <Link to="/clientes">
+      <NavLink
+        to="/clientes"
+        className={({ isActive }) =>
+          isActive ? 'menu-link ativo' : 'menu-link'
+        }
+      >
         Clientes
-      </Link>
+      </NavLink>
 
-      {' | '}
-
-      <Link to="/servicos">
+      <NavLink
+        to="/servicos"
+        className={({ isActive }) =>
+          isActive ? 'menu-link ativo' : 'menu-link'
+        }
+      >
         Serviços
-      </Link>
+      </NavLink>
 
-      {' | '}
-
-      <Link to="/agendamentos">
+      <NavLink
+        to="/agendamentos"
+        className={({ isActive }) =>
+          isActive ? 'menu-link ativo' : 'menu-link'
+        }
+      >
         Agendamentos
-      </Link>
+      </NavLink>
 
-      {' | '}
-
-      <button onClick={handleLogout}>
+      {/*
+      Botão que chama a função handleLogout
+      quando o usuário clicar.
+      */}
+      <button
+        className="botao-sair"
+        onClick={handleLogout}
+      >
         Sair
       </button>
     </nav>
