@@ -523,13 +523,24 @@ function Servicos() {
                     </td>
 
                     <td>
-                      R$ {Number(servico.preco).toFixed(2)}
+                      {Number(servico.preco).toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                    })}
                     </td>
 
                     <td>
-                      {servico.ativo
+                      <span
+                        className={
+                        servico.ativo
+                            ? 'status status-concluido'
+                            : 'status status-cancelado'
+                        }
+                      >
+                        {servico.ativo
                         ? 'Ativo'
                         : 'Inativo'}
+                      </span>
                     </td>
 
                     {usuario?.perfil === 'admin' && (

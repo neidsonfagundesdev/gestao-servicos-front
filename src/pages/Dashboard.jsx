@@ -67,6 +67,42 @@ function Dashboard() {
     );
   }
 
+  /*
+Formata a data para o padrão brasileiro.
+
+Recebe:
+2026-11-02
+
+Retorna:
+02/11/2026
+*/
+function formatarData(data) {
+  if (!data) {
+    return '-';
+  }
+
+  const [ano, mes, dia] = data.split('-');
+
+  return `${dia}/${mes}/${ano}`;
+}
+
+
+/*
+Transforma o status técnico
+em um texto mais amigável.
+*/
+function formatarStatus(status) {
+  const statusFormatados = {
+    agendado: 'Agendado',
+    confirmado: 'Confirmado',
+    em_atendimento: 'Em atendimento',
+    concluido: 'Concluído',
+    cancelado: 'Cancelado',
+  };
+
+  return statusFormatados[status] || status;
+}
+
   return (
     <div>
       <h1>Dashboard</h1>
@@ -160,17 +196,23 @@ function Dashboard() {
 
               <div>
                 <p>
-                  Data: {agendamento.data}
+                  Data: {formatarData(agendamento.data)}
                 </p>
 
                 <p>
-                  Hora: {agendamento.hora}
+                  Hora: {agendamento.hora.slice(0, 5)}
                 </p>
               </div>
 
               <div>
                 <p>
-                  Status: {agendamento.status}
+                  Status:{' '}
+
+                  <span
+                    className={`status status-${agendamento.status}`}
+                  >
+                    {formatarStatus(agendamento.status)}
+                  </span>
                 </p>
               </div>
             </div>
