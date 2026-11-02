@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listarAgendamentos, logout } from '../services/api';
+import { listarAgendamentos } from '../services/api';
 
 function Dashboard() {
   const [agendamentos, setAgendamentos] = useState([]);
@@ -27,27 +27,9 @@ function Dashboard() {
     carregarAgendamentos();
   }, [navigate]);
 
-  async function handleLogout() {
-    try {
-      await logout();
-
-      localStorage.removeItem('token');
-
-      localStorage.removeItem('usuario');
-
-      navigate('/login');
-    } catch {
-      setMensagem('Não foi possível fazer logout.');
-    }
-  }
-
   return (
     <div>
       <h1>Dashboard</h1>
-
-      <button onClick={handleLogout}>
-        Sair
-      </button>
 
       {mensagem && <p>{mensagem}</p>}
 
