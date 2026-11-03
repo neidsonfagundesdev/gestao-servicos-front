@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../services/api';
 
 function Login() {
   /*
@@ -39,7 +40,7 @@ function Login() {
       Faz a requisição para o endpoint de login.
       */
       const response = await fetch(
-        'http://127.0.0.1:8000/api/login',
+        `${API_URL}/login`,
         {
           method: 'POST',
 

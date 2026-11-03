@@ -1,6 +1,6 @@
-// Endereço base da nossa API Laravel.
-// Assim evitamos repetir "http://127.0.0.1:8000/api" em toda função.
-const API_URL = 'http://127.0.0.1:8000/api';
+// URL base da API.
+// O valor muda conforme o ambiente: desenvolvimento ou produção.
+export const API_URL = import.meta.env.VITE_API_URL;
 
 /*
 Trata as respostas vindas da API.
