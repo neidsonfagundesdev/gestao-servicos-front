@@ -19,6 +19,14 @@ function Login() {
   const [mensagem, setMensagem] = useState('');
 
   /*
+  Indica se a requisição de login está em andamento.
+
+  false = não está carregando
+  true  = está aguardando resposta do backend
+  */
+  const [carregando, setCarregando] = useState(false);
+
+  /*
   Permite navegar para outra rota.
   */
   const navigate = useNavigate();
@@ -32,8 +40,16 @@ function Login() {
     */
     event.preventDefault();
 
-    // Limpa mensagens anteriores
+    /*
+    Limpa mensagens anteriores.
+    */
     setMensagem('');
+
+    /*
+    Informa que a requisição começou.
+    Isso também desabilita o botão.
+    */
+    setCarregando(true);
 
     try {
       /*
@@ -66,9 +82,28 @@ function Login() {
 
       /*
       Se a resposta não for sucesso,
-      mostramos o erro retornado pelo backend.
+      tratamos os possíveis erros.
       */
       if (!response.ok) {
+
+        /*
+        429 = muitas requisições em pouco tempo.
+
+        O backend permite no máximo
+        5 tentativas de login por minuto.
+        */
+        if (response.status === 429) {
+          setMensagem(
+            'Muitas tentativas de login. Aguarde um minuto e tente novamente.'
+          );
+
+          return;
+        }
+
+        /*
+        Outros erros, como usuário
+        ou senha incorretos.
+        */
         setMensagem(
           dados.erro || 'Não foi possível entrar.'
         );
@@ -100,20 +135,30 @@ function Login() {
 
       /*
       Depois do login,
-      enviamos o usuário para o Dashboard.
+      envia o usuário para o Dashboard.
       */
       navigate('/dashboard');
 
     } catch {
       /*
       Esse erro pode acontecer se:
-      - backend estiver desligado
-      - endereço estiver errado
-      - houver problema de conexão
+      - backend estiver desligado;
+      - Render estiver acordando o backend;
+      - endereço estiver errado;
+      - houver problema de conexão.
       */
       setMensagem(
         'Não foi possível conectar ao servidor.'
       );
+
+    } finally {
+      /*
+      Executa tanto em caso de sucesso
+      quanto em caso de erro.
+
+      Libera novamente o botão de login.
+      */
+      setCarregando(false);
     }
   }
 
@@ -205,8 +250,9 @@ function Login() {
           <button
             className="login-botao"
             type="submit"
+            disabled={carregando}
           >
-            Entrar
+            {carregando ? 'Entrando...' : 'Entrar'}
           </button>
 
         </form>
